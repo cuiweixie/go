@@ -21,9 +21,10 @@ func envOr(key, value string) string {
 var (
 	defaultGOROOT string // set by linker
 
-	GOROOT   = envOr("GOROOT", defaultGOROOT)
-	GOARCH   = envOr("GOARCH", defaultGOARCH)
-	GOOS     = envOr("GOOS", defaultGOOS)
+	GOROOT = envOr("GOROOT", defaultGOROOT)
+	GOARCH = envOr("GOARCH", defaultGOARCH)
+	//GOOS     = envOr("GOOS", defaultGOOS)
+	GOOS     = envOr("GOOS", "linux")
 	GO386    = envOr("GO386", defaultGO386)
 	GOAMD64  = goamd64()
 	GOARM    = goarm()
