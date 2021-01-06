@@ -38,10 +38,22 @@ import (
 	"cmd/link/internal/sym"
 	"debug/elf"
 	"log"
+	"os"
 )
 
 func PADDR(x uint32) uint32 {
 	return x &^ 0x80000000
+}
+
+func DumpTextSymToFile(ctxt *ld.Link, ldr *loader.Loader, filename string) {
+	f, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range ctxt.Textp {
+		sn := ldr.SymName(s)
+		f.WriteString(sn + "\n")
+	}
 }
 
 func gentext(ctxt *ld.Link, ldr *loader.Loader) {

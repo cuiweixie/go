@@ -9,8 +9,10 @@ import (
 	"cmd/link/internal/loader"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 // If fallocate is not supported on this platform, return this error.
@@ -282,6 +284,10 @@ func (out *OutBuf) WriteStringPad(s string, n int, pad []byte) {
 // For generator symbols, it also sets the symbol's Data to the output
 // buffer.
 func (out *OutBuf) WriteSym(ldr *loader.Loader, s loader.Sym) []byte {
+	sn := ldr.SymName(s)
+	if strings.Contains(sn, "Minus") || sn == "main.main" || sn == "main.Add" {
+		fmt.Println("WriteSym", sn)
+	}
 	if !ldr.IsGeneratedSym(s) {
 		P := ldr.Data(s)
 		n := int64(len(P))

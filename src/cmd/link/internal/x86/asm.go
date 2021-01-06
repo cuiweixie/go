@@ -88,7 +88,6 @@ func gentext(ctxt *ld.Link, ldr *loader.Loader) {
 		thunks = append(thunks, thunkfunc.Sym())
 	}
 	ctxt.Textp = append(thunks, ctxt.Textp...) // keep Textp in dependency order
-
 	initfunc, addmoduledata := ld.PrepareAddmoduledata(ctxt)
 	if initfunc == nil {
 		return

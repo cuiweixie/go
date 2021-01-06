@@ -150,7 +150,7 @@ func FoldSubSymbolOffset(ldr *loader.Loader, s loader.Sym) (loader.Sym, int64) {
 //
 // This is a performance-critical function for the linker; be careful
 // to avoid introducing unnecessary allocations in the main loop.
-func (st *relocSymState) relocsym(s loader.Sym, P []byte) {
+func (st *relocSymState) relocsym(segment string, s loader.Sym, P []byte) {
 	ldr := st.ldr
 	relocs := ldr.Relocs(s)
 	if relocs.Count() == 0 {
@@ -182,7 +182,13 @@ func (st *relocSymState) relocsym(s loader.Sym, P []byte) {
 		if rs != 0 {
 			rst = ldr.SymType(rs)
 		}
-
+		if rs != 0 {
+			//fmt.Println("reloc sym name", ldr.SymName(rs))
+			sn := ldr.SymName(rs)
+			if strings.Contains(sn, "Minus") {
+				fmt.Println("find it", segment)
+			}
+		}
 		if rs != 0 && ((rst == sym.Sxxx && !ldr.AttrVisibilityHidden(rs)) || rst == sym.SXREF) {
 			// When putting the runtime but not main into a shared library
 			// these symbols are undefined and that's OK.
@@ -696,9 +702,17 @@ func (ctxt *Link) makeRelocSymState() *relocSymState {
 func windynrelocsym(ctxt *Link, rel *loader.SymbolBuilder, s loader.Sym) {
 	var su *loader.SymbolBuilder
 	relocs := ctxt.loader.Relocs(s)
+	ldr := ctxt.loader
 	for ri := 0; ri < relocs.Count(); ri++ {
 		r := relocs.At(ri)
 		targ := r.Sym()
+		if targ != 0 {
+			fmt.Println("dyn reloc sym name", ldr.SymName(targ))
+			sn := ldr.SymName(targ)
+			if strings.Contains(sn, "Minus") {
+				fmt.Println("find it")
+			}
+		}
 		if targ == 0 {
 			continue
 		}
@@ -784,6 +798,13 @@ func dynrelocsym(ctxt *Link, s loader.Sym) {
 		}
 
 		rSym := r.Sym()
+		if rSym != 0 {
+			//fmt.Println("dyn reloc sym name", ldr.SymName(rSym))
+			sn := ldr.SymName(rSym)
+			if strings.Contains(sn, "Minus") {
+				fmt.Println("find it")
+			}
+		}
 		if rSym != 0 && ldr.SymType(rSym) == sym.SDYNIMPORT || r.Type() >= objabi.ElfRelocOffset {
 			if rSym != 0 && !ldr.AttrReachable(rSym) {
 				ctxt.Errorf(s, "dynamic relocation to unreachable symbol %s", ldr.SymName(rSym))
@@ -819,7 +840,8 @@ func (state *dodataState) dynreloc(ctxt *Link) {
 }
 
 func CodeblkPad(ctxt *Link, out *OutBuf, addr int64, size int64, pad []byte) {
-	writeBlocks(ctxt, out, ctxt.outSem, ctxt.loader, ctxt.Textp, addr, size, pad)
+	fmt.Println("CodeblkPad")
+	writeBlocks("code", ctxt, out, ctxt.outSem, ctxt.loader, ctxt.Textp, addr, size, pad)
 }
 
 const blockSize = 1 << 20 // 1MB chunks written at a time.
@@ -829,7 +851,7 @@ const blockSize = 1 << 20 // 1MB chunks written at a time.
 // as many goroutines as necessary to accomplish this task. This call then
 // blocks, waiting on the writes to complete. Note that we use the sem parameter
 // to limit the number of concurrent writes taking place.
-func writeBlocks(ctxt *Link, out *OutBuf, sem chan int, ldr *loader.Loader, syms []loader.Sym, addr, size int64, pad []byte) {
+func writeBlocks(segment string, ctxt *Link, out *OutBuf, sem chan int, ldr *loader.Loader, syms []loader.Sym, addr, size int64, pad []byte) {
 	for i, s := range syms {
 		if ldr.SymValue(s) >= addr && !ldr.AttrSubSymbol(s) {
 			syms = syms[i:]
@@ -850,6 +872,9 @@ func writeBlocks(ctxt *Link, out *OutBuf, sem chan int, ldr *loader.Loader, syms
 			// If the next symbol's size would put us out of bounds on the total length,
 			// stop looking.
 			end := ldr.SymValue(s) + ldr.SymSize(s)
+			if ldr.SymName(s) == "main.main" {
+				fmt.Println("SymValue", ldr.SymValue(s), "SymSize", ldr.SymSize(s))
+			}
 			if end > lastAddr {
 				break
 			}
@@ -894,12 +919,12 @@ func writeBlocks(ctxt *Link, out *OutBuf, sem chan int, ldr *loader.Loader, syms
 			sem <- 1
 			wg.Add(1)
 			go func(o *OutBuf, ldr *loader.Loader, syms []loader.Sym, addr, size int64, pad []byte) {
-				writeBlock(ctxt, o, ldr, syms, addr, size, pad)
+				writeBlock(segment, ctxt, o, ldr, syms, addr, size, pad)
 				wg.Done()
 				<-sem
 			}(o, ldr, syms, addr, length, pad)
 		} else { // output not mmaped, don't parallelize.
-			writeBlock(ctxt, out, ldr, syms, addr, length, pad)
+			writeBlock(segment, ctxt, out, ldr, syms, addr, length, pad)
 		}
 
 		// Prepare for the next loop.
@@ -912,7 +937,7 @@ func writeBlocks(ctxt *Link, out *OutBuf, sem chan int, ldr *loader.Loader, syms
 	wg.Wait()
 }
 
-func writeBlock(ctxt *Link, out *OutBuf, ldr *loader.Loader, syms []loader.Sym, addr, size int64, pad []byte) {
+func writeBlock(segment string, ctxt *Link, out *OutBuf, ldr *loader.Loader, syms []loader.Sym, addr, size int64, pad []byte) {
 
 	st := ctxt.makeRelocSymState()
 
@@ -922,6 +947,9 @@ func writeBlock(ctxt *Link, out *OutBuf, ldr *loader.Loader, syms []loader.Sym, 
 	// so dwarfcompress will fix this up later if necessary.
 	eaddr := addr + size
 	for _, s := range syms {
+		if strings.Contains(ldr.SymName(s), "Minus") {
+			fmt.Println("find it")
+		}
 		if ldr.AttrSubSymbol(s) {
 			continue
 		}
@@ -938,7 +966,7 @@ func writeBlock(ctxt *Link, out *OutBuf, ldr *loader.Loader, syms []loader.Sym, 
 			addr = val
 		}
 		P := out.WriteSym(ldr, s)
-		st.relocsym(s, P)
+		st.relocsym(segment, s, P)
 		addr += int64(len(P))
 		siz := ldr.SymSize(s)
 		if addr < val+siz {
@@ -976,19 +1004,19 @@ func writeParallel(wg *sync.WaitGroup, fn writeFn, ctxt *Link, seek, vaddr, leng
 }
 
 func datblk(ctxt *Link, out *OutBuf, addr, size int64) {
-	writeDatblkToOutBuf(ctxt, out, addr, size)
+	writeDatblkToOutBuf("data", ctxt, out, addr, size)
 }
 
 // Used only on Wasm for now.
 func DatblkBytes(ctxt *Link, addr int64, size int64) []byte {
 	buf := make([]byte, size)
 	out := &OutBuf{heap: buf}
-	writeDatblkToOutBuf(ctxt, out, addr, size)
+	writeDatblkToOutBuf("wasm", ctxt, out, addr, size)
 	return buf
 }
 
-func writeDatblkToOutBuf(ctxt *Link, out *OutBuf, addr int64, size int64) {
-	writeBlocks(ctxt, out, ctxt.outSem, ctxt.loader, ctxt.datap, addr, size, zeros[:])
+func writeDatblkToOutBuf(segment string, ctxt *Link, out *OutBuf, addr int64, size int64) {
+	writeBlocks(segment, ctxt, out, ctxt.outSem, ctxt.loader, ctxt.datap, addr, size, zeros[:])
 }
 
 func dwarfblk(ctxt *Link, out *OutBuf, addr int64, size int64) {
@@ -1006,7 +1034,7 @@ func dwarfblk(ctxt *Link, out *OutBuf, addr int64, size int64) {
 	for i := range dwarfp {
 		syms = append(syms, dwarfp[i].syms...)
 	}
-	writeBlocks(ctxt, out, ctxt.outSem, ctxt.loader, syms, addr, size, zeros[:])
+	writeBlocks("dwarf", ctxt, out, ctxt.outSem, ctxt.loader, syms, addr, size, zeros[:])
 }
 
 var zeros [512]byte
@@ -2619,7 +2647,7 @@ func compressSyms(ctxt *Link, syms []loader.Sym) []byte {
 		if relocs.Count() != 0 {
 			relocbuf = append(relocbuf[:0], P...)
 			P = relocbuf
-			st.relocsym(s, P)
+			st.relocsym("dwarf", s, P)
 		}
 		if _, err := z.Write(P); err != nil {
 			log.Fatalf("compression failed: %s", err)

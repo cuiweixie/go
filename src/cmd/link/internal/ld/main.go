@@ -155,6 +155,7 @@ func Main(arch *sys.Arch, theArch Arch) {
 	}
 	if ctxt.HeadType == objabi.Hunknown {
 		ctxt.HeadType.Set(objabi.GOOS)
+		//ctxt.HeadType.Set("linux")
 	}
 
 	checkStrictDups = *FlagStrictDups
@@ -228,9 +229,10 @@ func Main(arch *sys.Arch, theArch Arch) {
 	}
 	bench.Start("loadlib")
 	ctxt.loadlib()
-
 	bench.Start("deadcode")
 	deadcode(ctxt)
+
+	DumpTextSymToFile(ctxt, "pre.txt")
 
 	bench.Start("linksetup")
 	ctxt.linksetup()
@@ -280,8 +282,9 @@ func Main(arch *sys.Arch, theArch Arch) {
 	ctxt.setArchSyms()
 	ctxt.addexport()
 	bench.Start("Gentext")
-	thearch.Gentext(ctxt, ctxt.loader) // trampolines, call stubs, etc.
 
+	thearch.Gentext(ctxt, ctxt.loader) // trampolines, call stubs, etc.
+	DumpTextSymToFile(ctxt, "after.txt")
 	bench.Start("textaddress")
 	ctxt.textaddress()
 	bench.Start("typelink")
@@ -393,5 +396,16 @@ func startProfile() {
 				log.Fatalf("%v", err)
 			}
 		})
+	}
+}
+
+func DumpTextSymToFile(ctxt *Link, filename string) {
+	f, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range ctxt.Textp {
+		sn := ctxt.loader.SymName(s)
+		f.WriteString(sn + "\n")
 	}
 }

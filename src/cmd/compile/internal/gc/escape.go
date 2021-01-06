@@ -1096,6 +1096,8 @@ func (e *Escape) flow(k EscHole, src *EscLocation) {
 	}
 
 	// TODO(mdempsky): Deduplicate edges?
+	fmt.Printf("dst pos %v src post%v\n", linestr(dst.n.Pos), linestr(src.n.Pos))
+	fmt.Println("dst.curfn.Func.Nname.Sym.Name", dst.curfn.Func.Nname.Sym.Name, "src.curfn.Func.Nname.Sym.Name", src.curfn.Func.Nname.Sym.Name)
 	dst.edges = append(dst.edges, EscEdge{src: src, derefs: k.derefs, notes: k.notes})
 }
 
@@ -1124,6 +1126,7 @@ func (e *Escape) walkAll() {
 
 	for _, loc := range e.allLocs {
 		enqueue(loc)
+		fmt.Printf("node: %v pos: %s\n", loc.n, linestr(loc.n.Pos))
 	}
 	enqueue(&e.heapLoc)
 
@@ -1134,6 +1137,10 @@ func (e *Escape) walkAll() {
 		root.queued = false
 
 		walkgen++
+		fmt.Printf("outer len(todo):%d walk gen %d node:%v\n", len(todo), walkgen, root.n)
+		if root.n != nil {
+			fmt.Printf("outer %v\n", linestr(root.n.Pos))
+		}
 		e.walkOne(root, walkgen, enqueue)
 	}
 }
@@ -1154,7 +1161,14 @@ func (e *Escape) walkOne(root *EscLocation, walkgen uint32, enqueue func(*EscLoc
 	for len(todo) > 0 {
 		l := todo[len(todo)-1]
 		todo = todo[:len(todo)-1]
-
+		fmt.Printf("inner len(todo):%d walk gen %d  root node:%v", len(todo), walkgen, root.n)
+		if root.n != nil {
+			fmt.Printf("inner root pos %v\n", linestr(root.n.Pos))
+		}
+		fmt.Printf("inner len(todo):%d walk gen %d l node:%v", len(todo), walkgen, l.n)
+		if root.n != nil {
+			fmt.Printf("inner l pos %v\n", linestr(l.n.Pos))
+		}
 		base := l.derefs
 
 		// If l.derefs < 0, then l's address flows to root.
