@@ -904,7 +904,12 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 	if gcphase == _GCmarktermination {
 		throw("mallocgc called with gcphase == _GCmarktermination")
 	}
-
+	if typ != nil {
+		//if typ.kind == 2 {
+		//	throw("abc")
+		//}
+		print(typ.string(), "\t", typ.kind, "\t", size, "\n")
+	}
 	if size == 0 {
 		return unsafe.Pointer(&zerobase)
 	}

@@ -1096,8 +1096,8 @@ func (e *Escape) flow(k EscHole, src *EscLocation) {
 	}
 
 	// TODO(mdempsky): Deduplicate edges?
-	fmt.Printf("dst pos %v src post%v\n", linestr(dst.n.Pos), linestr(src.n.Pos))
-	fmt.Println("dst.curfn.Func.Nname.Sym.Name", dst.curfn.Func.Nname.Sym.Name, "src.curfn.Func.Nname.Sym.Name", src.curfn.Func.Nname.Sym.Name)
+	//fmt.Printf("dst pos %v src post%v\n", linestr(dst.n.Pos), linestr(src.n.Pos))
+	//fmt.Println("dst.curfn.Func.Nname.Sym.Name", dst.curfn.Func.Nname.Sym.Name, "src.curfn.Func.Nname.Sym.Name", src.curfn.Func.Nname.Sym.Name)
 	dst.edges = append(dst.edges, EscEdge{src: src, derefs: k.derefs, notes: k.notes})
 }
 
