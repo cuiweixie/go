@@ -186,7 +186,7 @@ func (st *relocSymState) relocsym(segment string, s loader.Sym, P []byte) {
 			//fmt.Println("reloc sym name", ldr.SymName(rs))
 			sn := ldr.SymName(rs)
 			if strings.Contains(sn, "Minus") {
-				fmt.Println("find it", segment)
+				//fmt.Println("find it", segment)
 			}
 		}
 		if rs != 0 && ((rst == sym.Sxxx && !ldr.AttrVisibilityHidden(rs)) || rst == sym.SXREF) {
@@ -710,7 +710,7 @@ func windynrelocsym(ctxt *Link, rel *loader.SymbolBuilder, s loader.Sym) {
 			fmt.Println("dyn reloc sym name", ldr.SymName(targ))
 			sn := ldr.SymName(targ)
 			if strings.Contains(sn, "Minus") {
-				fmt.Println("find it")
+				//fmt.Println("find it")
 			}
 		}
 		if targ == 0 {
@@ -802,7 +802,7 @@ func dynrelocsym(ctxt *Link, s loader.Sym) {
 			//fmt.Println("dyn reloc sym name", ldr.SymName(rSym))
 			sn := ldr.SymName(rSym)
 			if strings.Contains(sn, "Minus") {
-				fmt.Println("find it")
+				//fmt.Println("find it")
 			}
 		}
 		if rSym != 0 && ldr.SymType(rSym) == sym.SDYNIMPORT || r.Type() >= objabi.ElfRelocOffset {
@@ -840,7 +840,10 @@ func (state *dodataState) dynreloc(ctxt *Link) {
 }
 
 func CodeblkPad(ctxt *Link, out *OutBuf, addr int64, size int64, pad []byte) {
-	fmt.Println("CodeblkPad")
+	//fmt.Println("CodeblkPad")
+	/*
+	   生成binary file的代码段
+	*/
 	writeBlocks("code", ctxt, out, ctxt.outSem, ctxt.loader, ctxt.Textp, addr, size, pad)
 }
 
@@ -873,7 +876,7 @@ func writeBlocks(segment string, ctxt *Link, out *OutBuf, sem chan int, ldr *loa
 			// stop looking.
 			end := ldr.SymValue(s) + ldr.SymSize(s)
 			if ldr.SymName(s) == "main.main" {
-				fmt.Println("SymValue", ldr.SymValue(s), "SymSize", ldr.SymSize(s))
+				//fmt.Println("SymValue", ldr.SymValue(s), "SymSize", ldr.SymSize(s))
 			}
 			if end > lastAddr {
 				break
@@ -948,7 +951,7 @@ func writeBlock(segment string, ctxt *Link, out *OutBuf, ldr *loader.Loader, sym
 	eaddr := addr + size
 	for _, s := range syms {
 		if strings.Contains(ldr.SymName(s), "Minus") {
-			fmt.Println("find it")
+			//fmt.Println("find it")
 		}
 		if ldr.AttrSubSymbol(s) {
 			continue

@@ -80,7 +80,7 @@ func WriteObjFile(ctxt *Link, b *bio.Writer) {
 	// Symbol definitions
 	h.Offsets[goobj.BlkSymdef] = w.Offset()
 	for _, s := range ctxt.defs {
-		fmt.Println("defs of symbol", s.Name)
+		//fmt.Println("defs of symbol", s.Name)
 		w.Sym(s)
 	}
 

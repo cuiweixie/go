@@ -4582,7 +4582,7 @@ func (s *state) addr(n *Node) *ssa.Value {
 		defer s.popLine()
 	}
 	if n.Sym != nil {
-		fmt.Println("n.Sym.Name", n.Sym.Name)
+		//fmt.Println("n.Sym.Name", n.Sym.Name)
 	}
 	t := types.NewPtr(n.Type)
 	switch n.Op {
@@ -5714,7 +5714,7 @@ func (s *state) dottype(n *Node, commaok bool) (res, resok *ssa.Value) {
 func (s *state) variable(name *Node, t *types.Type) *ssa.Value {
 	n := name
 	if n.Sym != nil {
-		fmt.Println("variable n.Sym.Name", n.Sym.Name)
+		//fmt.Println("variable n.Sym.Name", n.Sym.Name)
 	}
 	v := s.vars[name]
 	if v != nil {

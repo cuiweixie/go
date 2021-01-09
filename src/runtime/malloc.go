@@ -908,7 +908,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		//if typ.kind == 2 {
 		//	throw("abc")
 		//}
-		print(typ.string(), "\t", typ.kind, "\t", size, "\n")
+		//print(typ.string(), "\t", typ.kind, "\t", size, "\n")
 	}
 	if size == 0 {
 		return unsafe.Pointer(&zerobase)

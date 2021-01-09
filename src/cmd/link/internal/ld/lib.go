@@ -1734,7 +1734,7 @@ func hostlinkArchArgs(arch *sys.Arch) []string {
 // compiled by a non-Go compiler) it returns the Hostobj pointer. If
 // it is a Go object, it returns nil.
 func ldobj(ctxt *Link, f *bio.Reader, lib *sym.Library, length int64, pn string, file string) *Hostobj {
-	fmt.Println("library name", lib.String())
+	//fmt.Println("library name", lib.String())
 	pkg := objabi.PathToPrefix(lib.Pkg)
 
 	eof := f.Offset() + length

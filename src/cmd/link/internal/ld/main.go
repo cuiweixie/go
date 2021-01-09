@@ -232,7 +232,7 @@ func Main(arch *sys.Arch, theArch Arch) {
 	bench.Start("deadcode")
 	deadcode(ctxt)
 
-	DumpTextSymToFile(ctxt, "pre.txt")
+	//DumpTextSymToFile(ctxt, "pre.txt")
 
 	bench.Start("linksetup")
 	ctxt.linksetup()
@@ -284,7 +284,7 @@ func Main(arch *sys.Arch, theArch Arch) {
 	bench.Start("Gentext")
 
 	thearch.Gentext(ctxt, ctxt.loader) // trampolines, call stubs, etc.
-	DumpTextSymToFile(ctxt, "after.txt")
+	//DumpTextSymToFile(ctxt, "after.txt")
 	bench.Start("textaddress")
 	ctxt.textaddress()
 	bench.Start("typelink")
