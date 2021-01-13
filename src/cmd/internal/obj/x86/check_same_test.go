@@ -1,6 +1,8 @@
 package x86
 
 import (
+	"cmd/internal/obj"
+	"reflect"
 	"testing"
 )
 
@@ -23,6 +25,10 @@ func TestSame(t *testing.T) {
 	if newCount != len(ymovtabOrigin) {
 		t.Fatal("count not equal")
 	}
+}
+
+func movtabEqual(a, b movtab) bool {
+	return reflect.DeepEqual(a, b)
 }
 
 var ymovtabOrigin = []movtab{
