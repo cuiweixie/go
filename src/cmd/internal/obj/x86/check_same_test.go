@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func BenchmarkYmovtabMap(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, ok := ymovtab[1]
+		if ok {
+			ok = false
+		}
+	}
+}
+
+func BenchmarkYmovtabarry(b *testing.B) {
+	for j := 0; j < b.N; j++ {
+		for i := 0; i < len(ymovtabOrigin); i++ {
+			if ymovtabOrigin[i].as == 1 {
+
+			}
+		}
+	}
+}
+
 func TestSame(t *testing.T) {
 	genM := make(map[obj.As][]movtab)
 	for _, item := range ymovtabOrigin {
