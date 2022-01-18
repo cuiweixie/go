@@ -6,6 +6,8 @@ package main
 
 import (
 	"cmd/internal/objabi"
+	//"flag"
+	//"io"
 
 	"golang.org/x/tools/go/analysis/unitchecker"
 
@@ -36,9 +38,22 @@ import (
 	"golang.org/x/tools/go/analysis/passes/unreachable"
 	"golang.org/x/tools/go/analysis/passes/unsafeptr"
 	"golang.org/x/tools/go/analysis/passes/unusedresult"
+	//"fmt"
+	"os"
+	"strings"
 )
 
+var f *os.File
+func init() {
+	var err error
+	f, err = os.OpenFile("D:\\1.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
+	f.Write([]byte(strings.Join(os.Args, "\t")+"\n"))
 	objabi.AddVersionFlag()
 
 	unitchecker.Main(

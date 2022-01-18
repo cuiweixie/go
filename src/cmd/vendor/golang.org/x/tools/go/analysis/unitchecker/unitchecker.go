@@ -117,6 +117,22 @@ Usage of %[1]s:
 	if len(args) != 1 || !strings.HasSuffix(args[0], ".cfg") {
 		log.Fatalf(`invoking "go tool vet" directly is unsupported; use "go vet"`)
 	}
+
+	
+	var err error
+	f, err := os.OpenFile("D:\\1.txt", os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	f.Write([]byte(fmt.Sprint(len(flag.Args()))+"\n"))
+	if len(flag.Args()) == 1 {
+		f2, _ := os.Open(flag.Args()[0])
+		bs, _ :=  io.ReadAll(f2)
+		f.Write([]byte("======================\n"))
+		f.Write(bs)
+		f.Write([]byte("======================\n"))
+		f2.Close()
+	}
 	Run(args[0], analyzers)
 }
 
