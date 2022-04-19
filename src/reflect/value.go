@@ -1621,6 +1621,11 @@ func (v Value) lenNonSlice() int {
 	case String:
 		// String is bigger than a word; assume flagIndir.
 		return (*unsafeheader.String)(v.ptr).Len
+	case Ptr:
+		if v.Elem().Kind() == Array {
+			tt := (*arrayType)(unsafe.Pointer(v.Elem().typ))
+			return int(tt.len)
+		}
 	}
 	panic(&ValueError{"reflect.Value.Len", v.kind()})
 }
