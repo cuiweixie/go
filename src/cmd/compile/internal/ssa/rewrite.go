@@ -61,89 +61,99 @@ func applyRewrite(f *Func, rb blockRewriter, rv valueRewriter, deadcode deadValu
 					fmt.Printf("rewriting %s  ->  %s\n", b0.LongString(), b.LongString())
 				}
 			}
-			for j, v := range b.Values {
-				var v0 *Value
-				if debug > 1 {
-					v0 = new(Value)
-					*v0 = *v
-					v0.Args = append([]*Value{}, v.Args...) // make a new copy, not aliasing
-				}
-				if v.Uses == 0 && v.removeable() {
-					if v.Op != OpInvalid && deadcode == removeDeadValues {
-						// Reset any values that are now unused, so that we decrement
-						// the use count of all of its arguments.
-						// Not quite a deadcode pass, because it does not handle cycles.
-						// But it should help Uses==1 rules to fire.
-						v.reset(OpInvalid)
-						deadChange = true
+
+			for {
+				changeInBlock := false
+				for j, v := range b.Values {
+					var v0 *Value
+					if debug > 1 {
+						v0 = new(Value)
+						*v0 = *v
+						v0.Args = append([]*Value{}, v.Args...) // make a new copy, not aliasing
 					}
-					// No point rewriting values which aren't used.
-					continue
-				}
-
-				vchange := phielimValue(v)
-				if vchange && debug > 1 {
-					fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
-				}
-
-				// Eliminate copy inputs.
-				// If any copy input becomes unused, mark it
-				// as invalid and discard its argument. Repeat
-				// recursively on the discarded argument.
-				// This phase helps remove phantom "dead copy" uses
-				// of a value so that a x.Uses==1 rule condition
-				// fires reliably.
-				for i, a := range v.Args {
-					if a.Op != OpCopy {
+					if v.Uses == 0 && v.removeable() {
+						if v.Op != OpInvalid && deadcode == removeDeadValues {
+							// Reset any values that are now unused, so that we decrement
+							// the use count of all of its arguments.
+							// Not quite a deadcode pass, because it does not handle cycles.
+							// But it should help Uses==1 rules to fire.
+							v.reset(OpInvalid)
+							deadChange = true
+						}
+						// No point rewriting values which aren't used.
 						continue
 					}
-					aa := copySource(a)
-					v.SetArg(i, aa)
-					// If a, a copy, has a line boundary indicator, attempt to find a new value
-					// to hold it.  The first candidate is the value that will replace a (aa),
-					// if it shares the same block and line and is eligible.
-					// The second option is v, which has a as an input.  Because aa is earlier in
-					// the data flow, it is the better choice.
-					if a.Pos.IsStmt() == src.PosIsStmt {
-						if aa.Block == a.Block && aa.Pos.Line() == a.Pos.Line() && aa.Pos.IsStmt() != src.PosNotStmt {
-							aa.Pos = aa.Pos.WithIsStmt()
-						} else if v.Block == a.Block && v.Pos.Line() == a.Pos.Line() && v.Pos.IsStmt() != src.PosNotStmt {
-							v.Pos = v.Pos.WithIsStmt()
-						} else {
-							// Record the lost line and look for a new home after all rewrites are complete.
-							// TODO: it's possible (in FOR loops, in particular) for statement boundaries for the same
-							// line to appear in more than one block, but only one block is stored, so if both end
-							// up here, then one will be lost.
-							pendingLines.set(a.Pos, int32(a.Block.ID))
-						}
-						a.Pos = a.Pos.WithNotStmt()
-					}
-					vchange = true
-					for a.Uses == 0 {
-						b := a.Args[0]
-						a.reset(OpInvalid)
-						a = b
-					}
-				}
-				if vchange && debug > 1 {
-					fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
-				}
 
-				// apply rewrite function
-				if rv(v) {
-					vchange = true
-					// If value changed to a poor choice for a statement boundary, move the boundary
-					if v.Pos.IsStmt() == src.PosIsStmt {
-						if k := nextGoodStatementIndex(v, j, b); k != j {
-							v.Pos = v.Pos.WithNotStmt()
-							b.Values[k].Pos = b.Values[k].Pos.WithIsStmt()
+					vchange := phielimValue(v)
+					if vchange && debug > 1 {
+						fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
+					}
+
+					// Eliminate copy inputs.
+					// If any copy input becomes unused, mark it
+					// as invalid and discard its argument. Repeat
+					// recursively on the discarded argument.
+					// This phase helps remove phantom "dead copy" uses
+					// of a value so that a x.Uses==1 rule condition
+					// fires reliably.
+					for i, a := range v.Args {
+						if a.Op != OpCopy {
+							continue
+						}
+						aa := copySource(a)
+						v.SetArg(i, aa)
+						// If a, a copy, has a line boundary indicator, attempt to find a new value
+						// to hold it.  The first candidate is the value that will replace a (aa),
+						// if it shares the same block and line and is eligible.
+						// The second option is v, which has a as an input.  Because aa is earlier in
+						// the data flow, it is the better choice.
+						if a.Pos.IsStmt() == src.PosIsStmt {
+							if aa.Block == a.Block && aa.Pos.Line() == a.Pos.Line() && aa.Pos.IsStmt() != src.PosNotStmt {
+								aa.Pos = aa.Pos.WithIsStmt()
+							} else if v.Block == a.Block && v.Pos.Line() == a.Pos.Line() && v.Pos.IsStmt() != src.PosNotStmt {
+								v.Pos = v.Pos.WithIsStmt()
+							} else {
+								// Record the lost line and look for a new home after all rewrites are complete.
+								// TODO: it's possible (in FOR loops, in particular) for statement boundaries for the same
+								// line to appear in more than one block, but only one block is stored, so if both end
+								// up here, then one will be lost.
+								pendingLines.set(a.Pos, int32(a.Block.ID))
+							}
+							a.Pos = a.Pos.WithNotStmt()
+						}
+						vchange = true
+						for a.Uses == 0 {
+							b := a.Args[0]
+							a.reset(OpInvalid)
+							a = b
 						}
 					}
-				}
+					if vchange && debug > 1 {
+						fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
+					}
 
-				change = change || vchange
-				if vchange && debug > 1 {
-					fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
+					vchange2 := false
+					// apply rewrite function
+					if rv(v) {
+						vchange2 = true
+						vchange = true
+						// If value changed to a poor choice for a statement boundary, move the boundary
+						if v.Pos.IsStmt() == src.PosIsStmt {
+							if k := nextGoodStatementIndex(v, j, b); k != j {
+								v.Pos = v.Pos.WithNotStmt()
+								b.Values[k].Pos = b.Values[k].Pos.WithIsStmt()
+							}
+						}
+					}
+
+					change = change || vchange
+					changeInBlock = changeInBlock || vchange2
+					if vchange && debug > 1 {
+						fmt.Printf("rewriting %s  ->  %s\n", v0.LongString(), v.LongString())
+					}
+				}
+				if !changeInBlock {
+					break
 				}
 			}
 		}
