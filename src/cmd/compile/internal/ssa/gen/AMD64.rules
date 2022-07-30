@@ -2053,6 +2053,16 @@
   && clobber(x1, x2, x3)
   => (MOVQstore {s} p1 w mem)
 
+(MOVBstore {s} (LEAQ1 [7] p1 y) (SHRQconst [56]  w)
+  x1:(MOVWstore  {s} (LEAQ1 [5] p1 y)  (SHRQconst [40] w)
+  x2:(MOVLstore  {s} (LEAQ1 [1] p1 y)  (SHRQconst [8] w)
+  x3:(MOVBstore  {s} (ADDQ p1 y)  w mem))))
+  && x1.Uses == 1
+  && x2.Uses == 1
+  && x3.Uses == 1
+  && clobber(x1, x2, x3)
+  => (MOVQstore {s} (ADDQ <typ.UintptrPtr> p1 y) w mem)
+
 (MOVBstore [i] {s} p
   x1:(MOVBload [j] {s2} p2 mem)
     mem2:(MOVBstore [i-1] {s} p

@@ -11305,6 +11305,92 @@ func rewriteValueAMD64_OpAMD64MOVBstore(v *Value) bool {
 		v.AddArg3(p1, w, mem)
 		return true
 	}
+	// match: (MOVBstore {s} (LEAQ1 [7] p1 y) (SHRQconst [56] w) x1:(MOVWstore {s} (LEAQ1 [5] p1 y) (SHRQconst [40] w) x2:(MOVLstore {s} (LEAQ1 [1] p1 y) (SHRQconst [8] w) x3:(MOVBstore {s} (ADDQ p1 y) w mem))))
+	// cond: x1.Uses == 1 && x2.Uses == 1 && x3.Uses == 1 && clobber(x1, x2, x3)
+	// result: (MOVQstore {s} (ADDQ <typ.UintptrPtr> p1 y) w mem)
+	for {
+		s := auxToSym(v.Aux)
+		if v_0.Op != OpAMD64LEAQ1 || auxIntToInt32(v_0.AuxInt) != 7 {
+			break
+		}
+		_ = v_0.Args[1]
+		v_0_0 := v_0.Args[0]
+		v_0_1 := v_0.Args[1]
+		for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
+			p1 := v_0_0
+			y := v_0_1
+			if v_1.Op != OpAMD64SHRQconst || auxIntToInt8(v_1.AuxInt) != 56 {
+				continue
+			}
+			w := v_1.Args[0]
+			x1 := v_2
+			if x1.Op != OpAMD64MOVWstore || auxToSym(x1.Aux) != s {
+				continue
+			}
+			_ = x1.Args[2]
+			x1_0 := x1.Args[0]
+			if x1_0.Op != OpAMD64LEAQ1 || auxIntToInt32(x1_0.AuxInt) != 5 {
+				continue
+			}
+			_ = x1_0.Args[1]
+			x1_0_0 := x1_0.Args[0]
+			x1_0_1 := x1_0.Args[1]
+			for _i1 := 0; _i1 <= 1; _i1, x1_0_0, x1_0_1 = _i1+1, x1_0_1, x1_0_0 {
+				if p1 != x1_0_0 || y != x1_0_1 {
+					continue
+				}
+				x1_1 := x1.Args[1]
+				if x1_1.Op != OpAMD64SHRQconst || auxIntToInt8(x1_1.AuxInt) != 40 || w != x1_1.Args[0] {
+					continue
+				}
+				x2 := x1.Args[2]
+				if x2.Op != OpAMD64MOVLstore || auxToSym(x2.Aux) != s {
+					continue
+				}
+				_ = x2.Args[2]
+				x2_0 := x2.Args[0]
+				if x2_0.Op != OpAMD64LEAQ1 || auxIntToInt32(x2_0.AuxInt) != 1 {
+					continue
+				}
+				_ = x2_0.Args[1]
+				x2_0_0 := x2_0.Args[0]
+				x2_0_1 := x2_0.Args[1]
+				for _i2 := 0; _i2 <= 1; _i2, x2_0_0, x2_0_1 = _i2+1, x2_0_1, x2_0_0 {
+					if p1 != x2_0_0 || y != x2_0_1 {
+						continue
+					}
+					x2_1 := x2.Args[1]
+					if x2_1.Op != OpAMD64SHRQconst || auxIntToInt8(x2_1.AuxInt) != 8 || w != x2_1.Args[0] {
+						continue
+					}
+					x3 := x2.Args[2]
+					if x3.Op != OpAMD64MOVBstore || auxToSym(x3.Aux) != s {
+						continue
+					}
+					mem := x3.Args[2]
+					x3_0 := x3.Args[0]
+					if x3_0.Op != OpAMD64ADDQ {
+						continue
+					}
+					_ = x3_0.Args[1]
+					x3_0_0 := x3_0.Args[0]
+					x3_0_1 := x3_0.Args[1]
+					for _i3 := 0; _i3 <= 1; _i3, x3_0_0, x3_0_1 = _i3+1, x3_0_1, x3_0_0 {
+						if p1 != x3_0_0 || y != x3_0_1 || w != x3.Args[1] || !(x1.Uses == 1 && x2.Uses == 1 && x3.Uses == 1 && clobber(x1, x2, x3)) {
+							continue
+						}
+						v.reset(OpAMD64MOVQstore)
+						v.Aux = symToAux(s)
+						v0 := b.NewValue0(x3.Pos, OpAMD64ADDQ, typ.UintptrPtr)
+						v0.AddArg2(p1, y)
+						v.AddArg3(v0, w, mem)
+						return true
+					}
+				}
+			}
+		}
+		break
+	}
 	// match: (MOVBstore [i] {s} p x1:(MOVBload [j] {s2} p2 mem) mem2:(MOVBstore [i-1] {s} p x2:(MOVBload [j-1] {s2} p2 mem) mem))
 	// cond: x1.Uses == 1 && x2.Uses == 1 && mem2.Uses == 1 && clobber(x1, x2, mem2)
 	// result: (MOVWstore [i-1] {s} p (MOVWload [j-1] {s2} p2 mem) mem)
