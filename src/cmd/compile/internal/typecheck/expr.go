@@ -659,6 +659,30 @@ func tcLenCap(n *ir.UnaryExpr) ir.Node {
 	return n
 }
 
+// tcData typechecks an OUNSAFESLICEDATA or OUNSAFESTRINGDATA node.
+func tcData(n *ir.UnaryExpr, kind types.Kind) ir.Node {
+	n.X = Expr(n.X)
+	n.X = DefaultLit(n.X, nil)
+	l := n.X
+	t := l.Type()
+	if t == nil {
+		n.SetType(nil)
+		return n
+	}
+	if t.Kind() != kind {
+		base.Errorf("invalid argument %L for %v", l, n.Op())
+		n.SetType(nil)
+		return n
+	}
+
+	t = t.Elem()
+	if kind == types.TSTRING {
+		t = types.ByteType
+	}
+	n.SetType(types.NewPtr(t))
+	return n
+}
+
 // tcRecv typechecks an ORECV node.
 func tcRecv(n *ir.UnaryExpr) ir.Node {
 	n.X = Expr(n.X)
@@ -807,6 +831,31 @@ func tcSliceHeader(n *ir.SliceHeaderExpr) ir.Node {
 
 	if ir.IsConst(n.Len, constant.Int) && ir.IsConst(n.Cap, constant.Int) && constant.Compare(n.Len.Val(), token.GTR, n.Cap.Val()) {
 		base.Fatalf("len larger than cap for OSLICEHEADER")
+	}
+
+	return n
+}
+
+// tcStringHeader typechecks an OSTRINGHEADER node.
+func tcStringHeader(n *ir.StringHeaderExpr) ir.Node {
+	t := n.Type()
+	if t == nil {
+		base.Fatalf("no type specified for OSTRINGHEADER")
+	}
+
+	if !t.IsString() {
+		base.Fatalf("invalid type %v for OSTRINGHEADER", n.Type())
+	}
+
+	if n.Ptr == nil || n.Ptr.Type() == nil || !n.Ptr.Type().IsUnsafePtr() {
+		base.Fatalf("need unsafe.Pointer for OSTRINGHEADER")
+	}
+
+	n.Ptr = Expr(n.Ptr)
+	n.Len = DefaultLit(Expr(n.Len), types.Types[types.TINT])
+
+	if ir.IsConst(n.Len, constant.Int) && ir.Int64Val(n.Len) < 0 {
+		base.Fatalf("len for OSTRINGHEADER must be non-negative")
 	}
 
 	return n
