@@ -83,6 +83,12 @@ func InjectDebugCall(gp *g, fn any, regArgs *abi.RegArgs, stackArgs any, tkill f
 				}
 			}
 			return nil, h.err
+		} else {
+			if returnOnUnsafePoint && i < 100 {
+				usleep(100)
+				Gosched()
+				continue
+			}
 		}
 		return h.panic, nil
 	}
