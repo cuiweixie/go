@@ -33,6 +33,7 @@ package types2
 
 import (
 	"bytes"
+	base2 "cmd/compile/internal/base"
 	"fmt"
 	"sort"
 	"strings"
@@ -314,6 +315,8 @@ func (u *unifier) nify(x, y Type, p *ifacePair) (result bool) {
 	switch px, py := u.asTypeParam(x), u.asTypeParam(y); {
 	case px != nil && py != nil:
 		// both x and y are type parameters
+		println("hit", base2.FmtPos(base2.Pos))
+		panic("err")
 		if u.join(px, py) {
 			return true
 		}
